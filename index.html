@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鍼灸 国試マスター</title>
+<style>
+body{margin:0;background:#f4f6fa;color:#172033;font-family:-apple-system,sans-serif}
+main{max-width:600px;margin:auto;padding:20px}
+h1{font-size:24px}
+.card{background:white;padding:20px;border-radius:16px;margin-top:20px;box-shadow:0 2px 10px #0001}
+button{display:block;width:100%;padding:16px;margin:12px 0;border:1px solid #ccd3df;border-radius:12px;background:white;font-size:16px;text-align:left}
+.primary{background:#2456c5;color:white;text-align:center}
+#quiz,#result{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>鍼灸 国試マスター</h1>
+<div class="card" id="home">
+<p>国家試験対策・動作確認版</p>
+<button class="primary" onclick="start()">問題を開始</button>
+</div>
+<div class="card" id="quiz">
+<h2>第1問</h2>
+<p>医療法で定める病院の病床数は何床以上か。</p>
+<button onclick="answer(0)">① 10床以上</button>
+<button onclick="answer(1)">② 20床以上</button>
+<button onclick="answer(2)">③ 30床以上</button>
+<button onclick="answer(3)">④ 50床以上</button>
+</div>
+<div class="card" id="result">
+<h2 id="judge"></h2>
+<p>正解：② 20床以上</p>
+<p>① 誤り：10床では病院の定義を満たしません。</p>
+<p>② 正しい：病院は20人以上の患者を入院させる施設を有するものです。</p>
+<p>③ 誤り：30床以上ではありません。</p>
+<p>④ 誤り：50床以上ではありません。</p>
+<p>出典：2026.国家試験攻略テキスト「医療概論」3ページ、医療法第1条の5</p>
+<button class="primary" onclick="start()">もう一度解く</button>
+</div>
+</main>
+<script>
+function start(){
+document.getElementById("home").style.display="none";
+document.getElementById("result").style.display="none";
+document.getElementById("quiz").style.display="block";
+window.scrollTo(0,0);
+}
+function answer(n){
+document.getElementById("quiz").style.display="none";
+document.getElementById("result").style.display="block";
+document.getElementById("judge").textContent=n===1?"正解！":"不正解";
+window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
