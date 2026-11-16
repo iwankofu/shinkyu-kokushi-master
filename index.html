@@ -4,31 +4,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>鍼灸 国試マスター v0.3</title>
+<title>鍼灸 国試マスター v0.4</title>
 <style>
-body{margin:0;background:#f3f6fa;color:#182334;font-family:-apple-system,sans-serif}
+body{margin:0;background:#f3f6fa;color:#182334;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif}
 main{max-width:650px;margin:auto;padding:18px}
-h1{font-size:23px}
+h1{font-size:23px;margin:14px 0}
 h2{font-size:19px}
 .card{background:white;padding:20px;border-radius:16px;margin:14px 0;box-shadow:0 2px 12px #1b2b4410}
 button,select{font:inherit;border-radius:10px;padding:13px;border:1px solid #ccd5e2;background:white}
-button{width:100%;margin:6px 0;text-align:left}
+button{width:100%;margin:6px 0;text-align:left;cursor:pointer}
 .primary{background:#2158c7;color:white;text-align:center;border:0;font-weight:700}
+.secondary{text-align:center}
 .muted{color:#65738a;font-size:13px}
 .good{color:#137d4a}
 .bad{color:#b72d38}
+.answer{background:#f2f6ff}
+.correct-option{background:#e2f6e9;border:2px solid #16834c;color:#07572d;padding:12px;border-radius:10px;margin:8px 0}
+.wrong-option{background:#ffe8e8;border:2px solid #c72f3c;color:#85202b;padding:12px;border-radius:10px;margin:8px 0}
+.neutral-option{background:#f5f7fa;padding:12px;border-radius:10px;margin:8px 0}
 .small{font-size:14px;line-height:1.75}
 #quiz,#review,#finish{display:none}
-select{width:100%;margin:8px 0 14px}
+.choice{display:flex;gap:10px}
+.choice span{font-weight:700}
+select{width:100%;margin:5px 0 12px}
 .stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stat div{background:#f4f7fc;border-radius:10px;padding:10px}
 .stat b{display:block;font-size:21px}
+hr{border:0;border-top:1px solid #e7ebf0;margin:16px 0}
 </style>
 </head>
 <body>
 <main>
-<h1>📘 鍼灸 国試マスター v0.3</h1>
+<h1>📘 鍼灸 国試マスター <small style="font-size:12px">v0.4</small></h1>
 <p class="muted">教材準拠のオリジナル問題／医療概論</p>
+
 <section class="card" id="home">
 <h2>学習を開始</h2>
 <label>出題モード</label>
@@ -40,148 +49,83 @@ select{width:100%;margin:8px 0 14px}
 <button class="primary" onclick="start()">問題を開始</button>
 <h2>学習記録</h2>
 <div id="stats" class="stat"></div>
-<button onclick="resetHistory()">学習履歴をリセット</button>
+<button class="secondary" onclick="if(confirm('この端末の学習履歴を削除しますか？')){historyData={};save();showStats()}">学習履歴をリセット</button>
 </section>
+
 <section class="card" id="quiz">
 <p class="muted" id="progress"></p>
 <h2 id="question"></h2>
 <div id="choices"></div>
 </section>
+
 <section class="card" id="review">
 <h2 id="judgement"></h2>
 <p id="correct"></p>
 <div id="explanations" class="small"></div>
+<hr>
 <p id="related" class="small"></p>
 <p id="source" class="muted"></p>
 <button class="primary" onclick="next()">次の問題へ</button>
 </section>
+
 <section class="card" id="finish">
 <h2>演習終了</h2>
 <p id="summary"></p>
 <button class="primary" onclick="home()">トップに戻る</button>
 </section>
-<p class="muted">学習履歴はこのブラウザ内に保存されます。端末変更やデータ消去では失われる場合があります。</p>
+
+<p class="muted">学習履歴はこのブラウザ内に保存されます。端末変更やデータ消去では失われる場合があります。教材本文や個人情報は公開していません。</p>
 </main>
 <script>
 const questions=[
-{
-id:"m001",
-q:"医療法上、病院に該当する病床数はどれか。",
-options:["10床以上","20床以上","30床以上","50床以上"],
-correct:1,
-why:[
-"10床は病院の要件を満たさない。",
-"正しい。病院は20床以上。",
-"30床は定義上の境界ではない。",
-"50床は定義上の境界ではない。"
-],
-related:"診療所は無床または19床以下。",
-source:"医療概論 p.3"
-},
-{
-id:"m002",
-q:"医療計画を策定する主体はどれか。",
-options:["市町村","都道府県","厚生労働大臣","医師会"],
-correct:1,
-why:[
-"市町村ではない。",
-"正しい。都道府県が策定する。",
-"厚生労働大臣ではない。",
-"医師会ではない。"
-],
-related:"教材では医療計画は6年ごとに策定すると整理されている。",
-source:"医療概論 p.1"
-},
-{
-id:"m003",
-q:"介護保険の第1号被保険者はどれか。",
-options:["20歳以上","40～64歳","65歳以上","75歳以上"],
-correct:2,
-why:[
-"20歳以上ではない。",
-"40～64歳の医療保険加入者は第2号。",
-"正しい。第1号は65歳以上。",
-"75歳以上に限定されない。"
-],
-related:"第2号は40～64歳の医療保険加入者。",
-source:"医療概論 p.8"
-},
-{
-id:"m004",
-q:"介護保険の保険者はどれか。",
-options:["国","都道府県のみ","市町村および特別区","医療保険組合"],
-correct:2,
-why:[
-"国ではない。",
-"都道府県のみではない。",
-"正しい。市町村および特別区。",
-"医療保険組合ではない。"
-],
-related:"保険者と被保険者の違いを整理する。",
-source:"医療概論 p.8"
-},
-{
-id:"m005",
-q:"地域包括支援センターの職種として教材に挙げられるものはどれか。",
-options:["保健師","診療放射線技師","歯科技工士","臨床検査技師"],
-correct:0,
-why:[
-"正しい。保健師が挙げられる。",
-"教材の基本3職種には含まれない。",
-"教材の基本3職種には含まれない。",
-"教材の基本3職種には含まれない。"
-],
-related:"保健師・主任介護支援専門員・社会福祉士を覚える。",
-source:"医療概論 p.9"
-},
-{
-id:"m006",
-q:"医療保険による給付の原則的な形態はどれか。",
-options:["現金給付","現物給付","貸付","償還払いのみ"],
-correct:1,
-why:[
-"原則は現金給付ではない。",
-"正しい。原則は現物給付。",
-"貸付ではない。",
-"償還払いのみではない。"
-],
-related:"保険証を提示できなかった場合の後日精算などは例外。",
-source:"医療概論 p.6"
-}
+{id:'m001',subject:'医療概論',q:'医療法上、「病院」に該当する入院施設の病床数はどれか。',options:['10床以上','20床以上','30床以上','50床以上'],correct:1,why:['10床では病院の病床数要件を満たさない。','正しい。病院は20人以上の患者を入院させるための施設を有するもの。','30床は病院の定義上の境界ではない。','50床は病院の定義上の境界ではない。'],related:'診療所は入院施設がないか、19床以下。',source:'2026.国家試験攻略テキスト／医療概論 p.3「病院・診療所」'},
+{id:'m002',subject:'医療概論',q:'医療計画を策定する主体はどれか。',options:['市町村','都道府県','厚生労働大臣','医師会'],correct:1,why:['市町村ではない。','正しい。都道府県が医療計画を策定する。','厚生労働大臣は策定主体ではない。','医師会は策定主体ではない。'],related:'教材では医療計画は6年ごとに策定すると整理されている。',source:'2026.国家試験攻略テキスト／医療概論 p.1「医療計画」'},
+{id:'m003',subject:'医療概論',q:'介護保険の第1号被保険者はどれか。',options:['20歳以上','40歳以上65歳未満','65歳以上','75歳以上'],correct:2,why:['20歳以上ではない。','40〜64歳の医療保険加入者は第2号被保険者。','正しい。第1号被保険者は65歳以上。','75歳以上に限定されない。'],related:'第2号被保険者は40〜64歳の医療保険加入者。',source:'2026.国家試験攻略テキスト／医療概論 p.8「介護保険制度」'},
+{id:'m004',subject:'医療概論',q:'介護保険の保険者はどれか。',options:['国','都道府県のみ','市町村および特別区','医療保険組合'],correct:2,why:['国ではない。','都道府県のみではない。','正しい。市町村および特別区が保険者となる。','医療保険組合ではない。'],related:'保険者と被保険者を区別して覚える。',source:'2026.国家試験攻略テキスト／医療概論 p.8「介護保険制度」'},
+{id:'m005',subject:'医療概論',q:'地域包括支援センターの職種として、教材に挙げられているものはどれか。',options:['保健師','診療放射線技師','歯科技工士','臨床検査技師'],correct:0,why:['正しい。教材では保健師、主任介護支援専門員、社会福祉士が挙げられる。','教材で挙げられる3職種には含まれない。','教材で挙げられる3職種には含まれない。','教材で挙げられる3職種には含まれない。'],related:'保健師・主任介護支援専門員・社会福祉士をセットで覚える。',source:'2026.国家試験攻略テキスト／医療概論 p.9「地域包括支援センター」'},
+{id:'m006',subject:'医療概論',q:'医療保険による給付の原則的な形態はどれか。',options:['現金給付','現物給付','貸付','償還払いのみ'],correct:1,why:['原則は現金給付ではない。','正しい。医療サービスは原則として現物給付。','貸付ではない。','後日精算などの例外はあるが、原則が償還払いのみではない。'],related:'保険証を提示できなかった場合の後日精算などは例外。',source:'2026.国家試験攻略テキスト／医療概論 p.6「医療負担と給付」'},
+{id:'m007',subject:'医療概論',q:'急性期・回復期のリハビリテーションについて、教材で示されている保険はどれか。',options:['医療保険','介護保険のみ','雇用保険','労災保険のみ'],correct:0,why:['正しい。教材では急性期・回復期は医療保険によると整理する。','教材では維持期を介護保険によると整理している。','雇用保険は失業等に関する制度。','教材の分類は労災保険のみではない。'],related:'維持期のリハビリは教材では介護保険と整理される。',source:'2026.国家試験攻略テキスト／医療概論 p.2「リハビリテーション」'},
+{id:'m008',subject:'医療概論',q:'教材で国家資格ではない職種として挙げられているのはどれか。',options:['医師','看護師','介護支援専門員','理学療法士'],correct:2,why:['医師は国家資格。','看護師は国家資格。','正しい。教材では介護支援専門員を国家資格ではない職種として挙げる。','理学療法士は国家資格。'],related:'介護支援専門員はケアプランの作成などを担う。',source:'2026.国家試験攻略テキスト／医療概論 p.2「チーム医療と専門職連携」'},
+{id:'m009',subject:'医療概論',q:'教材で「医療行為あり」と整理される居宅サービスはどれか。',options:['訪問介護','訪問入浴介護','訪問看護','通所介護'],correct:2,why:['教材の表では訪問介護は医療行為なし。','教材の表では訪問入浴介護は医療行為なし。','正しい。訪問看護は医療行為ありと整理される。','教材の表では通所介護は医療行為なし。'],related:'教材の居宅サービス表で医療行為の有無を対比する。',source:'2026.国家試験攻略テキスト／医療概論 p.3「居宅サービス」'},
+{id:'m010',subject:'医療概論',q:'通所リハビリテーション（デイケア）の説明として教材に合うのはどれか。',options:['訪問介護員が自宅で家事援助する','施設に通い医師の指示の下でリハビリを受ける','短期間施設に宿泊する','福祉用具を購入する'],correct:1,why:['訪問介護の説明。','正しい。通所リハビリテーションの説明。','短期入所サービスの説明。','特定福祉用具販売の説明。'],related:'デイサービス（通所介護）とデイケア（通所リハビリ）を区別する。',source:'2026.国家試験攻略テキスト／医療概論 p.4「通所リハビリテーション」'},
+{id:'m011',subject:'医療概論',q:'教材で2018年に創設された介護保険施設はどれか。',options:['介護医療院','地域包括支援センター','保健所','診療所'],correct:0,why:['正しい。介護医療院は2018年に創設されたと教材に記載。','地域包括支援センターではない。','保健所ではない。','診療所ではない。'],related:'介護医療院は長期療養が必要な要介護者を対象に医療・介護を提供する。',source:'2026.国家試験攻略テキスト／医療概論 p.5「介護医療院」'},
+{id:'m012',subject:'医療概論',q:'教材で国民医療費に含まれないものはどれか。',options:['薬局調剤医療費','訪問看護医療費（医療保険）','正常な妊娠・分娩','医科診療費'],correct:2,why:['教材では国民医療費に含む。','教材では国民医療費に含む。','正しい。正常な妊娠・分娩は含まれない。','教材では国民医療費に含む。'],related:'健康診断・予防接種・差額ベッド代なども含まれないと整理される。',source:'2026.国家試験攻略テキスト／医療概論 p.5–6「国民医療費」'},
+{id:'m013',subject:'医療概論',q:'教材において後期高齢者医療制度の保険者はどれか。',options:['全国健康保険協会','後期高齢者医療広域連合','健康保険組合','国民健康保険組合'],correct:1,why:['被用者保険などの保険者である。','正しい。後期高齢者医療広域連合が保険者。','健康保険の保険者である。','国民健康保険の一部の保険者である。'],related:'後期高齢者医療の対象は原則75歳以上など。',source:'2026.国家試験攻略テキスト／医療概論 p.7「医療保険の種類と対象」'},
+{id:'m014',subject:'医療概論',q:'教材において介護保険の要支援認定の区分はどれか。',options:['要支援1・2','要支援1～5','要介護1・2のみ','非該当のみ'],correct:0,why:['正しい。要支援は1・2の2区分。','要支援は5区分ではない。','要介護は1～5に区分される。','非該当は要支援区分ではない。'],related:'要介護は1～5。要支援には予防給付が給付される。',source:'2026.国家試験攻略テキスト／医療概論 p.9「認定の区分」'}
 ];
-const KEY="shinkyu-master-v03";
+
+const KEY='shinkyu-master-v03';
 let historyData={};
 try{
-historyData=JSON.parse(localStorage.getItem(KEY)||"{}")||{};
+historyData=JSON.parse(localStorage.getItem(KEY)||'{}')||{};
 }catch(e){}
 let queue=[],position=0,sessionCorrect=0,answered=false;
+
 function save(){
 try{localStorage.setItem(KEY,JSON.stringify(historyData))}catch(e){}
 }
 function show(id){
-["home","quiz","review","finish"].forEach(x=>{
-document.getElementById(x).style.display=x===id?"block":"none";
-});
+['home','quiz','review','finish'].forEach(x=>
+document.getElementById(x).style.display=x===id?'block':'none');
 window.scrollTo(0,0);
 }
 function showStats(){
-let a=Object.values(historyData);
-let total=a.reduce((s,x)=>s+x.attempts,0);
-let correct=a.reduce((s,x)=>s+x.correct,0);
-let wrong=a.filter(x=>x.attempts>x.correct).length;
-document.getElementById("stats").innerHTML=
-"<div>累計回答<b>"+total+"</b></div>"+
-"<div>累計正答率<b>"+(total?Math.round(correct/total*100):0)+"%</b></div>"+
-"<div>学習済み<b>"+a.length+" / "+questions.length+"</b></div>"+
-"<div>誤答経験<b>"+wrong+"問</b></div>";
+let a=Object.values(historyData),
+total=a.reduce((s,x)=>s+x.attempts,0),
+correct=a.reduce((s,x)=>s+x.correct,0),
+wrong=a.filter(x=>x.attempts>x.correct).length;
+document.getElementById('stats').innerHTML=
+'<div>累計回答<b>'+total+'</b></div>'+
+'<div>累計正答率<b>'+(total?Math.round(correct/total*100):0)+'%</b></div>'+
+'<div>学習済み<b>'+a.length+' / '+questions.length+'</b></div>'+
+'<div>誤答経験<b>'+wrong+'問</b></div>';
 }
 function start(){
-let mode=document.getElementById("mode").value;
+let mode=document.getElementById('mode').value;
 queue=questions.filter(q=>
-mode==="wrong"?
+mode==='wrong'?
 historyData[q.id]&&historyData[q.id].attempts>historyData[q.id].correct:
-mode==="unseen"?!historyData[q.id]:true
-);
+mode==='unseen'?!historyData[q.id]:true);
 for(let i=queue.length-1;i>0;i--){
 let j=Math.floor(Math.random()*(i+1));
 [queue[i],queue[j]]=[queue[j],queue[i]];
@@ -189,7 +133,7 @@ let j=Math.floor(Math.random()*(i+1));
 position=0;
 sessionCorrect=0;
 if(!queue.length){
-alert("この条件に合う問題はありません。");
+alert('この条件に合う問題はありません。出題モードを変更してください。');
 return;
 }
 render();
@@ -197,63 +141,62 @@ render();
 function render(){
 answered=false;
 let q=queue[position];
-document.getElementById("progress").textContent=
-(position+1)+" / "+queue.length+"問";
-document.getElementById("question").textContent=q.q;
-document.getElementById("choices").innerHTML="";
+document.getElementById('progress').textContent=
+(position+1)+' / '+queue.length+'問';
+document.getElementById('question').textContent=q.q;
+document.getElementById('choices').innerHTML='';
 q.options.forEach((o,i)=>{
-let b=document.createElement("button");
-b.textContent=(i+1)+"．"+o;
+let b=document.createElement('button');
+b.className='choice';
+b.textContent=(i+1)+'．'+o;
 b.onclick=()=>answer(i);
-document.getElementById("choices").appendChild(b);
+document.getElementById('choices').appendChild(b);
 });
-show("quiz");
+show('quiz');
 }
 function answer(i){
 if(answered)return;
 answered=true;
-let q=queue[position];
-let ok=i===q.correct;
+let q=queue[position],ok=i===q.correct;
 if(ok)sessionCorrect++;
 let h=historyData[q.id]||{attempts:0,correct:0};
 h.attempts++;
 if(ok)h.correct++;
+h.last=Date.now();
 historyData[q.id]=h;
 save();
-document.getElementById("judgement").textContent=
-ok?"⭕ 正解！":"❌ 不正解";
-document.getElementById("judgement").className=ok?"good":"bad";
-document.getElementById("correct").textContent=
-"正解："+(q.correct+1)+"．"+q.options[q.correct];
-document.getElementById("explanations").innerHTML="";
+document.getElementById('judgement').textContent=
+ok?'⭕ 正解！':'❌ 不正解';
+document.getElementById('judgement').className=ok?'good':'bad';
+document.getElementById('correct').textContent=
+'✓ 正解：'+(q.correct+1)+'．'+q.options[q.correct]+
+(ok?'':' ／ あなたの回答：'+(i+1)+'．'+q.options[i]);
+document.getElementById('explanations').innerHTML='';
 q.why.forEach((t,j)=>{
-let p=document.createElement("p");
-p.textContent=(j+1)+"．"+q.options[j]+"："+t;
-document.getElementById("explanations").appendChild(p);
+let p=document.createElement('div');
+p.className=j===q.correct?'correct-option':
+j===i?'wrong-option':'neutral-option';
+p.textContent=(j+1)+'．'+q.options[j]+
+(j===q.correct?'　✓ 正解':j===i?'　✕ あなたの回答':'')+
+'：'+t;
+document.getElementById('explanations').appendChild(p);
 });
-document.getElementById("related").textContent=
-"関連知識："+q.related;
-document.getElementById("source").textContent=
-"教材出典：2026.国家試験攻略テキスト／"+q.source;
-show("review");
+document.getElementById('related').textContent='関連知識：'+q.related;
+document.getElementById('source').textContent='教材出典：'+q.source;
+show('review');
 }
 function next(){
 position++;
 if(position<queue.length){
 render();
 }else{
-document.getElementById("summary").textContent=
-queue.length+"問中"+sessionCorrect+"問正解（"+
-Math.round(sessionCorrect/queue.length*100)+"%）";
-show("finish");
+document.getElementById('summary').textContent=
+queue.length+'問中'+sessionCorrect+'問正解（'+
+Math.round(sessionCorrect/queue.length*100)+'%）';
+show('finish');
 }
 }
-function home(){showStats();show("home")}
-function resetHistory(){
-if(confirm("この端末の学習履歴を削除しますか？")){
-historyData={};save();showStats();
-}
-}
+function home(){showStats();show('home')}
 home();
 </script>
 </body>
