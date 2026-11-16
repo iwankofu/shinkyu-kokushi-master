@@ -1,58 +1,260 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>鍼灸 国試マスター</title>
+<title>鍼灸 国試マスター v0.3</title>
 <style>
-body{margin:0;background:#f4f6fa;color:#172033;font-family:-apple-system,sans-serif}
-main{max-width:600px;margin:auto;padding:20px}
-h1{font-size:24px}
-.card{background:white;padding:20px;border-radius:16px;margin-top:20px;box-shadow:0 2px 10px #0001}
-button{display:block;width:100%;padding:16px;margin:12px 0;border:1px solid #ccd3df;border-radius:12px;background:white;font-size:16px;text-align:left}
-.primary{background:#2456c5;color:white;text-align:center}
-#quiz,#result{display:none}
+body{margin:0;background:#f3f6fa;color:#182334;font-family:-apple-system,sans-serif}
+main{max-width:650px;margin:auto;padding:18px}
+h1{font-size:23px}
+h2{font-size:19px}
+.card{background:white;padding:20px;border-radius:16px;margin:14px 0;box-shadow:0 2px 12px #1b2b4410}
+button,select{font:inherit;border-radius:10px;padding:13px;border:1px solid #ccd5e2;background:white}
+button{width:100%;margin:6px 0;text-align:left}
+.primary{background:#2158c7;color:white;text-align:center;border:0;font-weight:700}
+.muted{color:#65738a;font-size:13px}
+.good{color:#137d4a}
+.bad{color:#b72d38}
+.small{font-size:14px;line-height:1.75}
+#quiz,#review,#finish{display:none}
+select{width:100%;margin:8px 0 14px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat div{background:#f4f7fc;border-radius:10px;padding:10px}
+.stat b{display:block;font-size:21px}
 </style>
 </head>
 <body>
 <main>
-<h1>鍼灸 国試マスター</h1>
-<div class="card" id="home">
-<p>国家試験対策・動作確認版</p>
+<h1>📘 鍼灸 国試マスター v0.3</h1>
+<p class="muted">教材準拠のオリジナル問題／医療概論</p>
+<section class="card" id="home">
+<h2>学習を開始</h2>
+<label>出題モード</label>
+<select id="mode">
+<option value="all">全問題（ランダム）</option>
+<option value="wrong">間違えた問題のみ</option>
+<option value="unseen">未回答の問題のみ</option>
+</select>
 <button class="primary" onclick="start()">問題を開始</button>
-</div>
-<div class="card" id="quiz">
-<h2>第1問</h2>
-<p>医療法で定める病院の病床数は何床以上か。</p>
-<button onclick="answer(0)">① 10床以上</button>
-<button onclick="answer(1)">② 20床以上</button>
-<button onclick="answer(2)">③ 30床以上</button>
-<button onclick="answer(3)">④ 50床以上</button>
-</div>
-<div class="card" id="result">
-<h2 id="judge"></h2>
-<p>正解：② 20床以上</p>
-<p>① 誤り：10床では病院の定義を満たしません。</p>
-<p>② 正しい：病院は20人以上の患者を入院させる施設を有するものです。</p>
-<p>③ 誤り：30床以上ではありません。</p>
-<p>④ 誤り：50床以上ではありません。</p>
-<p>出典：2026.国家試験攻略テキスト「医療概論」3ページ、医療法第1条の5</p>
-<button class="primary" onclick="start()">もう一度解く</button>
-</div>
+<h2>学習記録</h2>
+<div id="stats" class="stat"></div>
+<button onclick="resetHistory()">学習履歴をリセット</button>
+</section>
+<section class="card" id="quiz">
+<p class="muted" id="progress"></p>
+<h2 id="question"></h2>
+<div id="choices"></div>
+</section>
+<section class="card" id="review">
+<h2 id="judgement"></h2>
+<p id="correct"></p>
+<div id="explanations" class="small"></div>
+<p id="related" class="small"></p>
+<p id="source" class="muted"></p>
+<button class="primary" onclick="next()">次の問題へ</button>
+</section>
+<section class="card" id="finish">
+<h2>演習終了</h2>
+<p id="summary"></p>
+<button class="primary" onclick="home()">トップに戻る</button>
+</section>
+<p class="muted">学習履歴はこのブラウザ内に保存されます。端末変更やデータ消去では失われる場合があります。</p>
 </main>
 <script>
+const questions=[
+{
+id:"m001",
+q:"医療法上、病院に該当する病床数はどれか。",
+options:["10床以上","20床以上","30床以上","50床以上"],
+correct:1,
+why:[
+"10床は病院の要件を満たさない。",
+"正しい。病院は20床以上。",
+"30床は定義上の境界ではない。",
+"50床は定義上の境界ではない。"
+],
+related:"診療所は無床または19床以下。",
+source:"医療概論 p.3"
+},
+{
+id:"m002",
+q:"医療計画を策定する主体はどれか。",
+options:["市町村","都道府県","厚生労働大臣","医師会"],
+correct:1,
+why:[
+"市町村ではない。",
+"正しい。都道府県が策定する。",
+"厚生労働大臣ではない。",
+"医師会ではない。"
+],
+related:"教材では医療計画は6年ごとに策定すると整理されている。",
+source:"医療概論 p.1"
+},
+{
+id:"m003",
+q:"介護保険の第1号被保険者はどれか。",
+options:["20歳以上","40～64歳","65歳以上","75歳以上"],
+correct:2,
+why:[
+"20歳以上ではない。",
+"40～64歳の医療保険加入者は第2号。",
+"正しい。第1号は65歳以上。",
+"75歳以上に限定されない。"
+],
+related:"第2号は40～64歳の医療保険加入者。",
+source:"医療概論 p.8"
+},
+{
+id:"m004",
+q:"介護保険の保険者はどれか。",
+options:["国","都道府県のみ","市町村および特別区","医療保険組合"],
+correct:2,
+why:[
+"国ではない。",
+"都道府県のみではない。",
+"正しい。市町村および特別区。",
+"医療保険組合ではない。"
+],
+related:"保険者と被保険者の違いを整理する。",
+source:"医療概論 p.8"
+},
+{
+id:"m005",
+q:"地域包括支援センターの職種として教材に挙げられるものはどれか。",
+options:["保健師","診療放射線技師","歯科技工士","臨床検査技師"],
+correct:0,
+why:[
+"正しい。保健師が挙げられる。",
+"教材の基本3職種には含まれない。",
+"教材の基本3職種には含まれない。",
+"教材の基本3職種には含まれない。"
+],
+related:"保健師・主任介護支援専門員・社会福祉士を覚える。",
+source:"医療概論 p.9"
+},
+{
+id:"m006",
+q:"医療保険による給付の原則的な形態はどれか。",
+options:["現金給付","現物給付","貸付","償還払いのみ"],
+correct:1,
+why:[
+"原則は現金給付ではない。",
+"正しい。原則は現物給付。",
+"貸付ではない。",
+"償還払いのみではない。"
+],
+related:"保険証を提示できなかった場合の後日精算などは例外。",
+source:"医療概論 p.6"
+}
+];
+const KEY="shinkyu-master-v03";
+let historyData={};
+try{
+historyData=JSON.parse(localStorage.getItem(KEY)||"{}")||{};
+}catch(e){}
+let queue=[],position=0,sessionCorrect=0,answered=false;
+function save(){
+try{localStorage.setItem(KEY,JSON.stringify(historyData))}catch(e){}
+}
+function show(id){
+["home","quiz","review","finish"].forEach(x=>{
+document.getElementById(x).style.display=x===id?"block":"none";
+});
+window.scrollTo(0,0);
+}
+function showStats(){
+let a=Object.values(historyData);
+let total=a.reduce((s,x)=>s+x.attempts,0);
+let correct=a.reduce((s,x)=>s+x.correct,0);
+let wrong=a.filter(x=>x.attempts>x.correct).length;
+document.getElementById("stats").innerHTML=
+"<div>累計回答<b>"+total+"</b></div>"+
+"<div>累計正答率<b>"+(total?Math.round(correct/total*100):0)+"%</b></div>"+
+"<div>学習済み<b>"+a.length+" / "+questions.length+"</b></div>"+
+"<div>誤答経験<b>"+wrong+"問</b></div>";
+}
 function start(){
-document.getElementById("home").style.display="none";
-document.getElementById("result").style.display="none";
-document.getElementById("quiz").style.display="block";
-window.scrollTo(0,0);
+let mode=document.getElementById("mode").value;
+queue=questions.filter(q=>
+mode==="wrong"?
+historyData[q.id]&&historyData[q.id].attempts>historyData[q.id].correct:
+mode==="unseen"?!historyData[q.id]:true
+);
+for(let i=queue.length-1;i>0;i--){
+let j=Math.floor(Math.random()*(i+1));
+[queue[i],queue[j]]=[queue[j],queue[i]];
 }
-function answer(n){
-document.getElementById("quiz").style.display="none";
-document.getElementById("result").style.display="block";
-document.getElementById("judge").textContent=n===1?"正解！":"不正解";
-window.scrollTo(0,0);
+position=0;
+sessionCorrect=0;
+if(!queue.length){
+alert("この条件に合う問題はありません。");
+return;
 }
+render();
+}
+function render(){
+answered=false;
+let q=queue[position];
+document.getElementById("progress").textContent=
+(position+1)+" / "+queue.length+"問";
+document.getElementById("question").textContent=q.q;
+document.getElementById("choices").innerHTML="";
+q.options.forEach((o,i)=>{
+let b=document.createElement("button");
+b.textContent=(i+1)+"．"+o;
+b.onclick=()=>answer(i);
+document.getElementById("choices").appendChild(b);
+});
+show("quiz");
+}
+function answer(i){
+if(answered)return;
+answered=true;
+let q=queue[position];
+let ok=i===q.correct;
+if(ok)sessionCorrect++;
+let h=historyData[q.id]||{attempts:0,correct:0};
+h.attempts++;
+if(ok)h.correct++;
+historyData[q.id]=h;
+save();
+document.getElementById("judgement").textContent=
+ok?"⭕ 正解！":"❌ 不正解";
+document.getElementById("judgement").className=ok?"good":"bad";
+document.getElementById("correct").textContent=
+"正解："+(q.correct+1)+"．"+q.options[q.correct];
+document.getElementById("explanations").innerHTML="";
+q.why.forEach((t,j)=>{
+let p=document.createElement("p");
+p.textContent=(j+1)+"．"+q.options[j]+"："+t;
+document.getElementById("explanations").appendChild(p);
+});
+document.getElementById("related").textContent=
+"関連知識："+q.related;
+document.getElementById("source").textContent=
+"教材出典：2026.国家試験攻略テキスト／"+q.source;
+show("review");
+}
+function next(){
+position++;
+if(position<queue.length){
+render();
+}else{
+document.getElementById("summary").textContent=
+queue.length+"問中"+sessionCorrect+"問正解（"+
+Math.round(sessionCorrect/queue.length*100)+"%）";
+show("finish");
+}
+}
+function home(){showStats();show("home")}
+function resetHistory(){
+if(confirm("この端末の学習履歴を削除しますか？")){
+historyData={};save();showStats();
+}
+}
+home();
 </script>
 </body>
 </html>
